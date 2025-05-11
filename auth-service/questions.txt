@@ -1,1 +1,4 @@
 1. why email should check emptyness if "@" is already checking it
+2. is it possible to check body
+
+3. auth.rs why checked_add_signed()

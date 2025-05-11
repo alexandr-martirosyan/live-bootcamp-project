@@ -4,6 +4,7 @@ pub mod app_state;
 pub mod domain;
 pub mod routes;
 pub mod services;
+pub mod utils;
 
 use app_state::AppState;
 use axum::{
@@ -60,6 +61,10 @@ impl IntoResponse for AuthAPIError {
             AuthAPIError::UnexpectedError => {
                 (StatusCode::INTERNAL_SERVER_ERROR, "Unexpected error")
             }
+            AuthAPIError::IncorrectCredentials => (
+                StatusCode::UNAUTHORIZED,
+                "Unauthorized: Incorrect credentials",
+            ),
         };
         let body = Json(ErrorResponse {
             error: error_message.to_string(),

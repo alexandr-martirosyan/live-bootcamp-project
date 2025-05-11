@@ -1,6 +1,5 @@
 services:
   app-service:
-    # NOTE: Done 
     image: almen2000/app-service # specify name of image on Docker Hub
     restart: "always" # automatically restart container when server crashes
     environment: # set up environment variables
@@ -11,8 +10,9 @@ services:
       auth-service:
         condition: service_started
   auth-service:
-    # NOTE: Done 
     image: almen2000/auth-service
     restart: "always" # automatically restart container when server crashes
+    environment:
+      JWT_SECRET: ${JWT_SECRET} # New!
     ports:
       - "3000:3000" # expose port 3000 so that applications outside the container can connect to it https://github.com/rockerBOO/awesome-neovim?tab=readme-ov-file
