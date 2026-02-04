@@ -36,7 +36,8 @@ impl UserStore for HashmapUserStore {
             .get(email)
             .ok_or(UserStoreError::UserNotFound)
             .and_then(|u| {
-                (u.password() == password)
+                u.password()
+                    .eq(password)
                     .then_some(())
                     .ok_or(UserStoreError::InvalidCredentials)
             })
@@ -60,10 +61,10 @@ mod tests {
     async fn test_add_user() {
         let mut store = HashmapUserStore::default();
 
-        let u1 = make_user("a@test.com", "pw1");
+        let u1 = make_user("a@test.com", "password1");
         assert!(store.add_user(u1).await.is_ok());
 
-        let u2 = make_user("a@test.com", "pw2");
+        let u2 = make_user("a@test.com", "password2");
         let err = store.add_user(u2).await.unwrap_err();
         assert_eq!(err, UserStoreError::UserAlreadyExists);
     }
@@ -71,7 +72,10 @@ mod tests {
     #[tokio::test]
     async fn test_get_user() {
         let mut store = HashmapUserStore::default();
-        store.add_user(make_user("a@test.com", "pw")).await.unwrap();
+        store
+            .add_user(make_user("a@test.com", "password"))
+            .await
+            .unwrap();
 
         let u = store
             .get_user(&Email::parse("a@test.com".to_owned()).unwrap())
@@ -89,12 +93,15 @@ mod tests {
     #[tokio::test]
     async fn test_validate_user() {
         let mut store = HashmapUserStore::default();
-        store.add_user(make_user("a@test.com", "pw")).await.unwrap();
+        store
+            .add_user(make_user("a@test.com", "password"))
+            .await
+            .unwrap();
 
         assert!(store
             .validate_user(
                 &Email::parse("a@test.com".to_owned()).unwrap(),
-                &Password::parse("pw".to_owned()).unwrap()
+                &Password::parse("password".to_owned()).unwrap()
             )
             .await
             .is_ok());
@@ -102,7 +109,7 @@ mod tests {
         let err = store
             .validate_user(
                 &Email::parse("a@test.com".to_owned()).unwrap(),
-                &Password::parse("wrong".to_owned()).unwrap(),
+                &Password::parse("wrongpassword".to_owned()).unwrap(),
             )
             .await
             .unwrap_err();
@@ -111,7 +118,7 @@ mod tests {
         let err = store
             .validate_user(
                 &Email::parse("missing@test.com".to_owned()).unwrap(),
-                &Password::parse("pw".to_owned()).unwrap(),
+                &Password::parse("password".to_owned()).unwrap(),
             )
             .await
             .unwrap_err();

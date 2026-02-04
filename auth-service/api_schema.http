@@ -1,5 +1,6 @@
 @baseUrl = http://localhost:3000
 
+
 ###
 
 # Server: Main server
@@ -15,9 +16,9 @@ POST {{baseUrl}}/signup HTTP/1.1
 Content-Type: application/json
 
 {
-  "email": "string@gmail.com",
-  "password": "striaaaag",
-  "requires2FA": true
+  "email": "alex@gmail.com",
+  "password": "password123",
+  "requires2FA": false
 }
 
 ###
@@ -28,8 +29,27 @@ POST {{baseUrl}}/login HTTP/1.1
 Content-Type: application/json
 
 {
-  "email": "string",
-  "password": "string"
+  "email": "alex@gmail.com",
+  "password": "password123"
+}
+
+###
+
+# Server: Main server
+# Logout user
+POST {{baseUrl}}/logout HTTP/1.1
+Cookie: jwt=eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJzdWIiOiJhbGV4QGdtYWlsLmNvbSIsImV4cCI6MTc2OTc1MzY3Mn0.z-ZuztqLm3kuEM0lLQahipYx53nhTOj7ECMTXg24D9g
+
+###
+
+# Server: Main server
+# Verify JWT
+# Verifies if a JWT is valid
+POST {{baseUrl}}/verify-token HTTP/1.1
+Content-Type: application/json
+
+{
+  "token": "eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJzdWIiOiJhbGV4QGdtYWlsLmNvbSIsImV4cCI6MTc2OTc1NTY2M30.7r2bgAbuNY0ePzEvVlp-uGtsuej-gpxd_C05GS0Rbfw"
 }
 
 ###
@@ -43,22 +63,4 @@ Content-Type: application/json
   "email": "string",
   "loginAttemptId": "string",
   "2FACode": "string"
-}
-
-###
-
-# Server: Main server
-# Logout user
-POST {{baseUrl}}/logout HTTP/1.1
-
-###
-
-# Server: Main server
-# Verify JWT
-# Verifies if a JWT is valid
-POST {{baseUrl}}/verify-token HTTP/1.1
-Content-Type: application/json
-
-{
-  "token": "string"
 }

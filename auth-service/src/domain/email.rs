@@ -1,16 +1,14 @@
 use validator::ValidateEmail;
 
-use crate::domain::AuthAPIError;
-
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub struct Email(String);
 
 impl Email {
-    pub fn parse(email: String) -> Result<Email, AuthAPIError> {
-        if (&email).validate_email() {
-            Ok(Email(email))
+    pub fn parse(email: String) -> Result<Email, String> {
+        if email.validate_email() {
+            Ok(Self(email))
         } else {
-            Err(AuthAPIError::InvalidCredentials)
+            Err(format!("{} is not a valid email.", email))
         }
     }
 }
@@ -26,8 +24,8 @@ mod tests {
     use super::*;
     use fake::faker::internet::en::SafeEmail;
     use fake::Fake;
-    use quickcheck_macros::quickcheck;
-    use validator::ValidateEmail; // Needed for is_email()
+    use quickcheck::Gen;
+    use rand::SeedableRng;
 
     #[test]
     fn valid_email_is_accepted() {
@@ -38,15 +36,15 @@ mod tests {
     #[test]
     fn missing_at_symbol_is_rejected() {
         let email_str = "invalidemail.com".to_string();
-        let err = Email::parse(email_str).unwrap_err();
-        assert_eq!(err, AuthAPIError::InvalidCredentials);
+        let err = Email::parse(email_str.clone()).unwrap_err();
+        assert_eq!(err, format!("{} is not a valid email.", email_str));
     }
 
     #[test]
     fn invalid_email_is_rejected() {
         let email_str = "invalid@".to_string();
-        let err = Email::parse(email_str).unwrap_err();
-        assert_eq!(err, AuthAPIError::InvalidCredentials);
+        let err = Email::parse(email_str.clone()).unwrap_err();
+        assert_eq!(err, format!("{} is not a valid email.", email_str));
     }
 
     #[test]
@@ -56,12 +54,20 @@ mod tests {
         assert_eq!(email.as_ref(), email_str.as_str());
     }
 
-    #[quickcheck]
-    fn invalid_emails_are_rejected(input: String) -> bool {
-        if input.validate_email() {
-            Email::parse(input).is_ok()
-        } else {
-            Email::parse(input).is_err()
+    #[derive(Debug, Clone)]
+    struct ValidEmailFixture(pub String);
+
+    impl quickcheck::Arbitrary for ValidEmailFixture {
+        fn arbitrary(g: &mut Gen) -> Self {
+            let seed: u64 = g.size() as u64;
+            let mut rng = rand::rngs::SmallRng::seed_from_u64(seed);
+            let email = SafeEmail().fake_with_rng(&mut rng);
+            Self(email)
         }
+    }
+
+    #[quickcheck_macros::quickcheck]
+    fn valid_emails_are_parsed_successfully(valid_email: ValidEmailFixture) -> bool {
+        Email::parse(valid_email.0).is_ok()
     }
 }

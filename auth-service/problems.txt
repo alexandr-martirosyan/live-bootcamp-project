@@ -1,0 +1,4 @@
+axum-extra library is not compatible with task. Needs to be updated
+jsonwebtoken needs to use explicit feature to make auth.rs tests to work
+docker.sh needs to be changed
+veirfy_token in final solution of sprint 3 returns StatusCode instead of impl IntoResponse

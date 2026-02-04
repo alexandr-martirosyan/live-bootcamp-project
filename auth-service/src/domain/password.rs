@@ -1,14 +1,12 @@
-use crate::domain::AuthAPIError;
-
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub struct Password(String);
 
 impl Password {
-    pub fn parse(password: String) -> Result<Password, AuthAPIError> {
+    pub fn parse(password: String) -> Result<Password, String> {
         if password.len() >= 8 {
-            Ok(Password(password))
+            Ok(Self(password))
         } else {
-            Err(AuthAPIError::InvalidCredentials)
+            Err("Failed to parse string to a Password type".to_owned())
         }
     }
 }
@@ -33,7 +31,7 @@ mod tests {
     fn short_password_is_rejected() {
         let password = "abc".to_string();
         let err = Password::parse(password).unwrap_err();
-        assert_eq!(err, AuthAPIError::InvalidCredentials);
+        assert_eq!(err, "Failed to parse string to a Password type".to_owned());
     }
 
     #[test]
@@ -46,6 +44,6 @@ mod tests {
     fn empty_password_is_rejected() {
         let password = "".to_string();
         let err = Password::parse(password).unwrap_err();
-        assert_eq!(err, AuthAPIError::InvalidCredentials);
+        assert_eq!(err, "Failed to parse string to a Password type".to_owned());
     }
 }
