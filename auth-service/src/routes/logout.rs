@@ -29,7 +29,7 @@ pub async fn logout(
         .banned_token_store
         .write()
         .await
-        .ban_token(token)
+        .add_token(token)
         .await
         .is_err()
     {

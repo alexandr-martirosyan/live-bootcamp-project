@@ -64,7 +64,7 @@ pub async fn validate_token(
     if banned_token_store
         .read()
         .await
-        .is_token_banned(token)
+        .contains_token(token)
         .await
         .map_err(|_| {
             jsonwebtoken::errors::Error::from(jsonwebtoken::errors::ErrorKind::InvalidToken)
@@ -177,7 +177,7 @@ mod tests {
         // In your logout handler you called `.ban_token(token)`, so we mirror that.
         let mut store = banned_token_store.write().await;
         store
-            .ban_token(&token)
+            .add_token(&token)
             .await
             .expect("failed to ban token in test");
         drop(store); // release the write lock

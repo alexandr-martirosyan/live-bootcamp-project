@@ -52,7 +52,7 @@ async fn should_return_200_if_valid_jwt_cookie() {
     let is_banned = banned_tokens
         .read()
         .await
-        .is_token_banned(token)
+        .contains_token(token)
         .await
         .expect("Failed to check if token is banned");
 

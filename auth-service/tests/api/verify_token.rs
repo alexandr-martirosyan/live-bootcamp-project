@@ -111,7 +111,7 @@ async fn should_return_401_if_banned_token() {
     let is_banned = banned_tokens
         .read()
         .await
-        .is_token_banned(token)
+        .contains_token(token)
         .await
         .expect("Failed to check if token is banned");
 

@@ -9,11 +9,11 @@ pub struct HashSetBannedTokenStore {
 
 #[async_trait::async_trait]
 impl BannedTokenStore for HashSetBannedTokenStore {
-    async fn ban_token(&mut self, token: &str) -> Result<(), BannedTokenStoreError> {
+    async fn add_token(&mut self, token: &str) -> Result<(), BannedTokenStoreError> {
         self.users.insert(token.to_owned());
         Ok(())
     }
-    async fn is_token_banned(&self, token: &str) -> Result<bool, BannedTokenStoreError> {
+    async fn contains_token(&self, token: &str) -> Result<bool, BannedTokenStoreError> {
         Ok(self.users.contains(token))
     }
 }
@@ -28,11 +28,11 @@ mod tests {
         let mut store = HashSetBannedTokenStore::default();
         let token = "test_token";
 
-        assert_eq!(store.is_token_banned(token).await.unwrap(), false);
+        assert_eq!(store.contains_token(token).await.unwrap(), false);
 
-        store.ban_token(token).await.unwrap();
+        store.add_token(token).await.unwrap();
 
-        assert_eq!(store.is_token_banned(token).await.unwrap(), true);
+        assert_eq!(store.contains_token(token).await.unwrap(), true);
     }
 
     #[tokio::test]
@@ -41,8 +41,8 @@ mod tests {
         let token1 = "token1";
         let token2 = "token2";
 
-        store.ban_token(token1).await.unwrap();
-        assert_eq!(store.is_token_banned(token1).await.unwrap(), true);
-        assert_eq!(store.is_token_banned(token2).await.unwrap(), false);
+        store.add_token(token1).await.unwrap();
+        assert_eq!(store.contains_token(token1).await.unwrap(), true);
+        assert_eq!(store.contains_token(token2).await.unwrap(), false);
     }
 }
