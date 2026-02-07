@@ -99,7 +99,7 @@ pub struct Claims {
 
 #[cfg(test)]
 mod tests {
-    use crate::services::HashSetBannedTokenStore;
+    use crate::services::data_stores::HashSetBannedTokenStore;
 
     use super::*;
     use std::sync::Arc;

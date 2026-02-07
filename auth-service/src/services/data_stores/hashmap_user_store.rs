@@ -1,14 +1,14 @@
 use std::collections::HashMap;
 
-use crate::domain::{Email, Password, User, UserStore, UserStoreError};
+use crate::domain::{Email, User, UserStore, UserStoreError};
 
 #[derive(Default)]
-pub struct HashmapUserStore {
+pub struct HashMapUserStore {
     users: HashMap<Email, User>,
 }
 
 #[async_trait::async_trait]
-impl UserStore for HashmapUserStore {
+impl UserStore for HashMapUserStore {
     async fn add_user(&mut self, user: User) -> Result<(), UserStoreError> {
         let email = user.email();
 
@@ -27,53 +27,46 @@ impl UserStore for HashmapUserStore {
             .ok_or(UserStoreError::UserNotFound)
     }
 
-    async fn validate_user(
-        &self,
-        email: &Email,
-        password: &Password,
-    ) -> Result<(), UserStoreError> {
-        self.users
-            .get(email)
-            .ok_or(UserStoreError::UserNotFound)
-            .and_then(|u| {
-                u.password()
-                    .eq(password)
-                    .then_some(())
-                    .ok_or(UserStoreError::InvalidCredentials)
-            })
+    async fn validate_user(&self, email: &Email, raw_password: &str) -> Result<(), UserStoreError> {
+        let user = self.users.get(email).ok_or(UserStoreError::UserNotFound)?;
+
+        user.password()
+            .verify_raw_password(raw_password)
+            .await
+            .map_err(|_| UserStoreError::InvalidCredentials)
     }
 }
 
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::domain::{Email, Password};
+    use crate::domain::{Email, HashedPassword};
 
-    fn make_user(email: &str, password: &str) -> User {
+    async fn make_user(email: &str, password: &str) -> User {
         User::new(
             Email::parse(email.to_owned()).unwrap(),
-            Password::parse(password.to_owned()).unwrap(),
+            HashedPassword::parse(password.to_owned()).await.unwrap(),
             true,
         )
     }
 
     #[tokio::test]
     async fn test_add_user() {
-        let mut store = HashmapUserStore::default();
+        let mut store = HashMapUserStore::default();
 
-        let u1 = make_user("a@test.com", "password1");
+        let u1 = make_user("a@test.com", "password1").await;
         assert!(store.add_user(u1).await.is_ok());
 
-        let u2 = make_user("a@test.com", "password2");
+        let u2 = make_user("a@test.com", "password2").await;
         let err = store.add_user(u2).await.unwrap_err();
         assert_eq!(err, UserStoreError::UserAlreadyExists);
     }
 
     #[tokio::test]
     async fn test_get_user() {
-        let mut store = HashmapUserStore::default();
+        let mut store = HashMapUserStore::default();
         store
-            .add_user(make_user("a@test.com", "password"))
+            .add_user(make_user("a@test.com", "password").await)
             .await
             .unwrap();
 
@@ -92,24 +85,21 @@ mod tests {
 
     #[tokio::test]
     async fn test_validate_user() {
-        let mut store = HashmapUserStore::default();
+        let mut store = HashMapUserStore::default();
         store
-            .add_user(make_user("a@test.com", "password"))
+            .add_user(make_user("a@test.com", "password").await)
             .await
             .unwrap();
 
         assert!(store
-            .validate_user(
-                &Email::parse("a@test.com".to_owned()).unwrap(),
-                &Password::parse("password".to_owned()).unwrap()
-            )
+            .validate_user(&Email::parse("a@test.com".to_owned()).unwrap(), "password")
             .await
             .is_ok());
 
         let err = store
             .validate_user(
                 &Email::parse("a@test.com".to_owned()).unwrap(),
-                &Password::parse("wrongpassword".to_owned()).unwrap(),
+                "wrongpassword",
             )
             .await
             .unwrap_err();
@@ -118,7 +108,7 @@ mod tests {
         let err = store
             .validate_user(
                 &Email::parse("missing@test.com".to_owned()).unwrap(),
-                &Password::parse("password".to_owned()).unwrap(),
+                "password",
             )
             .await
             .unwrap_err();

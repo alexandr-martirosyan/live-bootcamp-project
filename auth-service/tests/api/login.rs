@@ -47,6 +47,8 @@ async fn should_return_200_if_valid_credentials_and_2fa_disabled() {
             .expect("Could not deserialize response body to LoginResponse"),
         expected_response
     );
+    let mut app = app;
+    app.clean_up().await;
 }
 
 #[tokio::test]
@@ -74,7 +76,10 @@ async fn should_return_422_if_malformed_credentials() {
             test_case
         );
     }
+    let mut app = app;
+    app.clean_up().await;
 }
+
 #[tokio::test]
 async fn should_return_400_if_invalid_input() {
     let app = TestApp::new().await;
@@ -121,6 +126,9 @@ async fn should_return_400_if_invalid_input() {
             "Invalid credentials".to_owned()
         )
     }
+
+    let mut app = app;
+    app.clean_up().await;
 }
 
 #[tokio::test]
@@ -172,6 +180,9 @@ async fn should_return_401_if_incorrect_credentials() {
             "Incorrect credentials".to_owned()
         );
     }
+
+    let mut app = app;
+    app.clean_up().await;
 }
 
 #[tokio::test]
@@ -207,11 +218,16 @@ async fn should_return_206_if_valid_credentials_and_2fa_enabled() {
     let expected_response_message = "2FA required".to_owned();
     assert_eq!(response_body.message, expected_response_message);
 
-    let two_fa_code_store = app.two_fa_code_store.read().await;
+    let two_fa_code_store = app.two_fa_code_store.clone();
     let code = two_fa_code_store
+        .read()
+        .await
         .get_code(&Email::parse(random_email.to_owned()).unwrap())
         .await
         .expect("Could not get 2FA code from store");
 
     assert_eq!(response_body.login_attempt_id, code.0.as_ref().to_owned());
+
+    let mut app = app;
+    app.clean_up().await;
 }

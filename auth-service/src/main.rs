@@ -3,7 +3,12 @@ use std::sync::Arc;
 use auth_service::{
     app_state::AppState,
     get_postgres_pool,
-    services::{HashMapTwoFACodeStore, HashSetBannedTokenStore, HashmapUserStore, MockEmailClient},
+    services::{
+        data_stores::{
+            HashMapTwoFACodeStore, HashSetBannedTokenStore, PostgresUserStore,
+        },
+        mock_email_client::MockEmailClient,
+    },
     utils::{prod, DATABASE_URL},
     Application,
 };
@@ -14,7 +19,7 @@ use tokio::sync::RwLock;
 async fn main() {
     // We will use this PostgreSQL pool in the next task!
     let pg_pool = configure_postgresql().await;
-    let user_store = Arc::new(RwLock::new(HashmapUserStore::default()));
+    let user_store = Arc::new(RwLock::new(PostgresUserStore::new(pg_pool)));
     let banned_token_store = Arc::new(RwLock::new(HashSetBannedTokenStore::default()));
     let two_fa_code_store = Arc::new(RwLock::new(HashMapTwoFACodeStore::default()));
     let email_client = Arc::new(RwLock::new(MockEmailClient));

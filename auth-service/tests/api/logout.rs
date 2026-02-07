@@ -48,13 +48,18 @@ async fn should_return_200_if_valid_jwt_cookie() {
 
     assert!(auth_cookie.value().is_empty());
 
-    let banned_tokens = app.banned_token_store.read().await;
+    let banned_tokens = app.banned_token_store.clone();
     let is_banned = banned_tokens
+        .read()
+        .await
         .is_token_banned(token)
         .await
         .expect("Failed to check if token is banned");
 
     assert!(is_banned);
+
+    let mut app = app;
+    app.clean_up().await;
 }
 
 #[tokio::test]
@@ -64,6 +69,9 @@ async fn should_return_400_if_jwt_cookie_missing() {
     let response = app.post_logout().await;
 
     assert_eq!(response.status().as_u16(), 400);
+
+    let mut app = app;
+    app.clean_up().await;
 }
 
 #[tokio::test]
@@ -119,6 +127,9 @@ async fn should_return_400_if_logout_called_twice_in_a_row() {
             .error,
         "Missing auth token".to_owned()
     );
+
+    let mut app = app;
+    app.clean_up().await;
 }
 
 #[tokio::test]
@@ -137,4 +148,7 @@ async fn should_return_401_if_invalid_token() {
     let response = app.post_logout().await;
 
     assert_eq!(response.status().as_u16(), 401);
+
+    let mut app = app;
+    app.clean_up().await;
 }

@@ -28,6 +28,9 @@ async fn should_return_422_if_malformed_input() {
             test_case
         );
     }
+
+    let mut app = app;
+    app.clean_up().await;
 }
 
 #[tokio::test]
@@ -54,6 +57,9 @@ async fn should_return_401_if_invalid_token() {
             "Invalid auth token".to_owned()
         );
     }
+
+    let mut app = app;
+    app.clean_up().await;
 }
 
 #[tokio::test]
@@ -101,8 +107,10 @@ async fn should_return_401_if_banned_token() {
 
     assert!(auth_cookie.value().is_empty());
 
-    let banned_tokens = app.banned_token_store.read().await;
+    let banned_tokens = app.banned_token_store.clone();
     let is_banned = banned_tokens
+        .read()
+        .await
         .is_token_banned(token)
         .await
         .expect("Failed to check if token is banned");
@@ -124,6 +132,9 @@ async fn should_return_401_if_banned_token() {
             .error,
         "Invalid auth token".to_owned()
     );
+
+    let mut app = app;
+    app.clean_up().await;
 }
 
 #[tokio::test]
@@ -166,4 +177,7 @@ async fn should_return_200_valid_token() {
     let response = app.post_verify_token(&verify_token_body).await;
 
     assert_eq!(response.status().as_u16(), 200);
+
+    let mut app = app;
+    app.clean_up().await;
 }
