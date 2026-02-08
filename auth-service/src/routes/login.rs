@@ -5,7 +5,7 @@ use serde::{Deserialize, Serialize};
 use crate::{
     app_state::AppState,
     domain::{AuthAPIError, Email, HashedPassword, LoginAttemptId, TwoFACode, UserStoreError},
-    utils::generate_auth_cookie,
+    utils::auth::generate_auth_cookie,
 };
 
 pub async fn login(

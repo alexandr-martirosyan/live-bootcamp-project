@@ -4,7 +4,7 @@ use axum_extra::extract::{cookie, CookieJar};
 use crate::{
     app_state::AppState,
     domain::AuthAPIError,
-    utils::{validate_token, JWT_COOKIE_NAME},
+    utils::{auth::validate_token, constants::JWT_COOKIE_NAME},
 };
 
 pub async fn logout(

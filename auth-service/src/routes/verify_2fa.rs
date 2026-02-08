@@ -5,7 +5,7 @@ use serde::Deserialize;
 use crate::{
     app_state::AppState,
     domain::{AuthAPIError, Email, LoginAttemptId, TwoFACode},
-    utils::generate_auth_cookie,
+    utils::auth::generate_auth_cookie,
 };
 
 pub async fn verify_2fa(

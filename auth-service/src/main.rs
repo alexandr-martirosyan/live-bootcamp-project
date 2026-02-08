@@ -7,7 +7,7 @@ use auth_service::{
         data_stores::{PostgresUserStore, RedisBannedTokenStore, RedisTwoFACodeStore},
         mock_email_client::MockEmailClient,
     },
-    utils::{prod, DATABASE_URL, REDIS_HOST_NAME},
+    utils::constants::{prod, DATABASE_URL, REDIS_HOST_NAME},
     Application,
 };
 use sqlx::PgPool;

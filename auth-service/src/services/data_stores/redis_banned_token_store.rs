@@ -1,11 +1,11 @@
 use std::sync::Arc;
 
-use redis::{TypedCommands, Connection};
+use redis::{Connection, TypedCommands};
 use tokio::sync::RwLock;
 
 use crate::{
     domain::{BannedTokenStore, BannedTokenStoreError},
-    utils::TOKEN_TTL_SECONDS,
+    utils::auth::TOKEN_TTL_SECONDS,
 };
 
 pub struct RedisBannedTokenStore {

@@ -1,14 +1,10 @@
 use std::{str::FromStr, sync::Arc};
 
 use auth_service::{
-    app_state::{AppState, BannedTokenStoreType, TwoFACodeStoreType},
-    get_postgres_pool, get_redis_client,
-    services::{
+    Application, app_state::{AppState, BannedTokenStoreType, TwoFACodeStoreType}, get_postgres_pool, get_redis_client, services::{
         data_stores::{PostgresUserStore, RedisBannedTokenStore, RedisTwoFACodeStore},
         mock_email_client::MockEmailClient,
-    },
-    utils::{test, DATABASE_URL, DEFAULT_REDIS_HOSTNAME},
-    Application,
+    }, utils::constants::{DATABASE_URL, DEFAULT_REDIS_HOSTNAME, test}
 };
 use reqwest::{cookie::Jar, Client};
 use sqlx::{
