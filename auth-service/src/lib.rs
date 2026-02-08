@@ -14,12 +14,14 @@ use tokio::net::TcpListener;
 use tower_http::{
     cors::CorsLayer,
     services::{ServeDir, ServeFile},
+    trace::TraceLayer,
 };
 
 use crate::{
     app_state::AppState,
     domain::AuthAPIError,
     routes::{login, logout, signup, verify_2fa, verify_token},
+    utils::tracing::{make_span_with_request_id, on_request, on_response},
 };
 
 pub mod app_state;
@@ -59,7 +61,13 @@ impl Application {
             .route("/logout", post(logout))
             .route("/verify-token", post(verify_token))
             .with_state(app_state)
-            .layer(cors);
+            .layer(cors)/* ; */
+            .layer(
+                TraceLayer::new_for_http()
+                    .make_span_with(make_span_with_request_id)
+                    .on_request(on_request)
+                    .on_response(on_response),
+            );
         let listener = tokio::net::TcpListener::bind(address).await?;
         let address = listener.local_addr()?.to_string();
         let server = axum::serve(listener, router);
@@ -68,7 +76,7 @@ impl Application {
     }
 
     pub async fn run(self) -> Result<(), std::io::Error> {
-        println!("listening on {}", &self.address);
+        tracing::info!("listening on {}", &self.address);
         self.server.await
     }
 }
