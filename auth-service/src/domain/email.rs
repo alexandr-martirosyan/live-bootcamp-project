@@ -1,14 +1,15 @@
+use color_eyre::eyre::{eyre, Result};
 use validator::ValidateEmail;
 
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub struct Email(String);
 
 impl Email {
-    pub fn parse(email: String) -> Result<Email, String> {
+    pub fn parse(email: String) -> Result<Email> {
         if email.validate_email() {
             Ok(Self(email))
         } else {
-            Err(format!("{} is not a valid email.", email))
+            Err(eyre!("{} is not a valid email.", email))
         }
     }
 }
@@ -37,14 +38,20 @@ mod tests {
     fn missing_at_symbol_is_rejected() {
         let email_str = "invalidemail.com".to_string();
         let err = Email::parse(email_str.clone()).unwrap_err();
-        assert_eq!(err, format!("{} is not a valid email.", email_str));
+        assert_eq!(
+            err.to_string(),
+            format!("{} is not a valid email.", email_str)
+        );
     }
 
     #[test]
     fn invalid_email_is_rejected() {
         let email_str = "invalid@".to_string();
         let err = Email::parse(email_str.clone()).unwrap_err();
-        assert_eq!(err, format!("{} is not a valid email.", email_str));
+        assert_eq!(
+            err.to_string(),
+            format!("{} is not a valid email.", email_str)
+        );
     }
 
     #[test]

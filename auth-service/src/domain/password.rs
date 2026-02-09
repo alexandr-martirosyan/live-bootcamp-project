@@ -2,7 +2,7 @@ use argon2::{
     password_hash::{rand_core::OsRng, SaltString},
     Algorithm, Argon2, Params, PasswordHash, PasswordHasher, PasswordVerifier, Version,
 };
-use std::error::Error;
+use color_eyre::eyre::{eyre, Context, Result};
 
 #[derive(Debug, Clone, PartialEq)]
 pub struct HashedPassword(String); // updated!
@@ -29,14 +29,15 @@ impl HashedPassword {
     pub async fn verify_raw_password(
         &self,
         password_candidate: &str,
-    ) -> Result<(), Box<dyn Error + Send + Sync>> {
+    ) -> Result<()> {
         let current_span: tracing::Span = tracing::Span::current();
+
         let password_hash = self.as_ref().to_owned();
         let password_candidate = password_candidate.to_owned();
 
         tokio::task::spawn_blocking(move || {
             current_span.in_scope(|| {
-                let expected_password_hash: PasswordHash<'_> = PasswordHash::new(&password_hash)?;
+                let expected_password_hash = PasswordHash::new(&password_hash)?;
 
                 Argon2::default()
                     .verify_password(password_candidate.as_bytes(), &expected_password_hash)
@@ -51,7 +52,7 @@ impl HashedPassword {
 
 // Helper function to hash passwords before persisting them in storage.
 #[tracing::instrument(name = "Computing password hash", skip_all)]
-async fn compute_password_hash(password: &str) -> Result<String, Box<dyn Error + Send + Sync>> {
+async fn compute_password_hash(password: &str) -> Result<String> {
     let current_span: tracing::Span = tracing::Span::current();
     let password = password.to_owned();
 

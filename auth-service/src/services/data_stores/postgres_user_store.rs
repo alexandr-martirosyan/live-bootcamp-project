@@ -1,3 +1,4 @@
+use color_eyre::eyre::eyre;
 use sqlx::PgPool;
 
 use crate::domain::{Email, HashedPassword, User, UserStore, UserStoreError};
@@ -40,7 +41,7 @@ impl UserStore for PostgresUserStore {
                         return Err(UserStoreError::UserAlreadyExists);
                     }
                 }
-                Err(UserStoreError::UnexpectedError)
+                Err(UserStoreError::UnexpectedError(e.into()))
             }
         }
     }
@@ -59,9 +60,10 @@ impl UserStore for PostgresUserStore {
         .await
         .map_err(|_| UserStoreError::UserNotFound)?;
 
-        let email = Email::parse(record.email).map_err(|_| UserStoreError::UnexpectedError)?;
+        let email =
+            Email::parse(record.email).map_err(|e| UserStoreError::UnexpectedError(eyre!(e)))?;
         let password = HashedPassword::parse_password_hash(record.password_hash)
-            .map_err(|_| UserStoreError::UnexpectedError)?;
+            .map_err(|e| UserStoreError::UnexpectedError(eyre!(e)))?;
         let requires_2fa = record.requires_2fa;
 
         Ok(User::new(email, password, requires_2fa))
