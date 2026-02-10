@@ -1,12 +1,17 @@
 use std::{str::FromStr, sync::Arc};
 
 use auth_service::{
-    Application, app_state::{AppState, BannedTokenStoreType, TwoFACodeStoreType}, get_postgres_pool, get_redis_client, services::{
+    app_state::{AppState, BannedTokenStoreType, TwoFACodeStoreType},
+    get_postgres_pool, get_redis_client,
+    services::{
         data_stores::{PostgresUserStore, RedisBannedTokenStore, RedisTwoFACodeStore},
         mock_email_client::MockEmailClient,
-    }, utils::constants::{DATABASE_URL, DEFAULT_REDIS_HOSTNAME, test}
+    },
+    utils::constants::{test, DATABASE_URL, DEFAULT_REDIS_HOSTNAME},
+    Application,
 };
 use reqwest::{cookie::Jar, Client};
+use secrecy::{ExposeSecret, SecretString};
 use sqlx::{
     postgres::{PgConnectOptions, PgPoolOptions},
     Connection, Executor, PgConnection, PgPool,
@@ -159,11 +164,12 @@ impl Drop for TestApp {
 }
 
 async fn configure_postgresql(db_name: &str) -> PgPool {
-    let postgresql_conn_url = DATABASE_URL.to_owned();
+    let postgresql_conn_url = DATABASE_URL.expose_secret();
 
-    configure_database(&postgresql_conn_url, &db_name).await;
+    configure_database(postgresql_conn_url, &db_name).await;
 
-    let postgresql_conn_url_with_db = format!("{}/{}", postgresql_conn_url, db_name);
+    let postgresql_conn_url_with_db =
+        SecretString::new(format!("{}/{}", postgresql_conn_url, db_name).into_boxed_str());
 
     // Create a new connection pool and return it
     get_postgres_pool(&postgresql_conn_url_with_db)
@@ -200,9 +206,9 @@ async fn configure_database(db_conn_string: &str, db_name: &str) {
 }
 
 async fn delete_database(db_name: &str) {
-    let postgresql_conn_url: String = DATABASE_URL.to_owned();
+    let postgresql_conn_url = DATABASE_URL.expose_secret();
 
-    let connection_options = PgConnectOptions::from_str(&postgresql_conn_url)
+    let connection_options = PgConnectOptions::from_str(postgresql_conn_url)
         .expect("Failed to parse PostgreSQL connection string");
 
     let mut connection = PgConnection::connect_with(&connection_options)

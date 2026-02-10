@@ -1,5 +1,7 @@
 use std::collections::HashMap;
 
+use secrecy::SecretString;
+
 use crate::domain::{Email, User, UserStore, UserStoreError};
 
 #[derive(Default)]
@@ -27,7 +29,11 @@ impl UserStore for HashMapUserStore {
             .ok_or(UserStoreError::UserNotFound)
     }
 
-    async fn validate_user(&self, email: &Email, raw_password: &str) -> Result<(), UserStoreError> {
+    async fn validate_user(
+        &self,
+        email: &Email,
+        raw_password: &SecretString,
+    ) -> Result<(), UserStoreError> {
         let user = self.users.get(email).ok_or(UserStoreError::UserNotFound)?;
 
         user.password()
@@ -40,12 +46,29 @@ impl UserStore for HashMapUserStore {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::domain::{Email, HashedPassword};
+    use crate::domain::{Email, Password};
+
+    fn secret_str(s: &str) -> SecretString {
+        // new
+        SecretString::new(s.to_owned().into_boxed_str()) // new
+    }
+
+    fn create_email(s: &str) -> Email {
+        // updated
+        Email::parse(secret_str(s)).expect("valid email") // updated
+    }
+
+    async fn create_password(s: &str) -> Password {
+        // new
+        Password::parse(secret_str(s))
+            .await
+            .expect("valid password") // new
+    }
 
     async fn make_user(email: &str, password: &str) -> User {
         User::new(
-            Email::parse(email.to_owned()).unwrap(),
-            HashedPassword::parse(password.to_owned()).await.unwrap(),
+            create_email(email),             // updated
+            create_password(password).await, // updated
             true,
         )
     }
@@ -70,16 +93,12 @@ mod tests {
             .await
             .unwrap();
 
-        let u = store
-            .get_user(&Email::parse("a@test.com".to_owned()).unwrap())
-            .await
-            .unwrap();
-        assert_eq!(u.email(), &Email::parse("a@test.com".to_owned()).unwrap());
+        let email = create_email("a@test.com"); // new
+        let u = store.get_user(&email).await.unwrap(); // updated
+        assert_eq!(u.email(), &email); // updated
 
-        let err = store
-            .get_user(&Email::parse("missing@test.com".to_owned()).unwrap())
-            .await
-            .unwrap_err();
+        let missing = create_email("missing@test.com"); // new
+        let err = store.get_user(&missing).await.unwrap_err(); // updated
         assert_eq!(err, UserStoreError::UserNotFound);
     }
 
@@ -91,25 +110,22 @@ mod tests {
             .await
             .unwrap();
 
+        let email = create_email("a@test.com"); // new
+
         assert!(store
-            .validate_user(&Email::parse("a@test.com".to_owned()).unwrap(), "password")
+            .validate_user(&email, &secret_str("password")) // updated
             .await
             .is_ok());
 
         let err = store
-            .validate_user(
-                &Email::parse("a@test.com".to_owned()).unwrap(),
-                "wrongpassword",
-            )
+            .validate_user(&email, &secret_str("wrongpassword")) // updated
             .await
             .unwrap_err();
         assert_eq!(err, UserStoreError::InvalidCredentials);
 
+        let missing = create_email("missing@test.com"); // new
         let err = store
-            .validate_user(
-                &Email::parse("missing@test.com".to_owned()).unwrap(),
-                "password",
-            )
+            .validate_user(&missing, &secret_str("password")) // updated
             .await
             .unwrap_err();
         assert_eq!(err, UserStoreError::UserNotFound);

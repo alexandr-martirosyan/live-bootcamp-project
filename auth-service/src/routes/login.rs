@@ -1,10 +1,11 @@
 use axum::{extract::State, http::StatusCode, response::IntoResponse, Json};
 use axum_extra::extract::CookieJar;
+use secrecy::{ExposeSecret, SecretString};
 use serde::{Deserialize, Serialize};
 
 use crate::{
     app_state::AppState,
-    domain::{AuthAPIError, Email, HashedPassword, LoginAttemptId, TwoFACode, UserStoreError},
+    domain::{AuthAPIError, Email, LoginAttemptId, Password, TwoFACode, UserStoreError},
     utils::auth::generate_auth_cookie,
 };
 
@@ -19,13 +20,13 @@ pub async fn login(
         Err(_) => return (jar, Err(AuthAPIError::InvalidCredentials)),
     };
     let password = request.password;
-    if HashedPassword::parse(password.clone()).await.is_err() {
+    if Password::parse(password.clone()).await.is_err() {
         return (jar, Err(AuthAPIError::InvalidCredentials));
     };
 
     let user_store = state.user_store.read().await;
 
-    match user_store.validate_user(&email, password.as_ref()).await {
+    match user_store.validate_user(&email, &password).await {
         Ok(_) => (),
         Err(UserStoreError::UserNotFound | UserStoreError::InvalidCredentials) => {
             return (jar, Err(AuthAPIError::IncorrectCredentials));
@@ -56,7 +57,7 @@ async fn handle_2fa(
     // First, we must generate a new random login attempt ID and 2FA code
     let two_fa_code = TwoFACode::default();
     let login_attempt_id = LoginAttemptId::default();
-    let login_attampt_id_str = login_attempt_id.as_ref().to_owned();
+    let login_attampt_id_str = login_attempt_id.as_ref().expose_secret().to_owned();
 
     if let Err(e) = state
         .email_client
@@ -65,7 +66,7 @@ async fn handle_2fa(
         .send_email(
             email,
             "Your 2FA Code",
-            &format!("Your 2FA code is: {}", two_fa_code.as_ref()),
+            &format!("Your 2FA code is: {}", two_fa_code.as_ref().expose_secret()),
         )
         .await
     {
@@ -110,8 +111,8 @@ async fn handle_no_2fa(
 
 #[derive(Deserialize)]
 pub struct LoginRequest {
-    pub email: String,
-    pub password: String,
+    pub email: SecretString,
+    pub password: SecretString,
 }
 
 // The login route can return 2 possible success responses.

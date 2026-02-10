@@ -38,11 +38,16 @@ impl TwoFACodeStore for HashMapTwoFACodeStore {
 }
 #[cfg(test)]
 mod tests {
+    use secrecy::SecretString;
+
     use super::*;
     use crate::domain::{Email, LoginAttemptId, TwoFACode};
 
     fn test_email() -> Email {
-        Email::parse("test@example.com".to_owned()).unwrap()
+        Email::parse(SecretString::new(
+            "test@example.com".to_owned().into_boxed_str(),
+        ))
+        .unwrap()
     }
 
     fn test_login_attempt_id() -> LoginAttemptId {

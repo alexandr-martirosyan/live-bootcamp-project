@@ -5,6 +5,17 @@ use auth_service::{
     utils::constants::JWT_COOKIE_NAME,
     ErrorResponse,
 };
+use secrecy::{ExposeSecret, SecretString};
+
+fn create_email(s: &str) -> Email {
+    // updated
+    Email::parse(secret_str(s)).expect("valid email") // updated
+}
+
+fn secret_str(s: &str) -> SecretString {
+    // new
+    SecretString::new(s.to_owned().into_boxed_str()) // new
+}
 
 #[tokio::test]
 async fn should_return_200_if_correct_code() {
@@ -41,11 +52,14 @@ async fn should_return_200_if_correct_code() {
 
     let two_fa_code_store = app.two_fa_code_store.read().await;
     let code = two_fa_code_store
-        .get_code(&Email::parse(random_email.to_owned()).unwrap())
+        .get_code(&create_email(&random_email))
         .await
         .expect("Could not get 2FA code from store");
 
-    assert_eq!(response_body.login_attempt_id, code.0.as_ref().to_owned());
+    assert_eq!(
+        response_body.login_attempt_id,
+        code.0.as_ref().expose_secret().to_owned()
+    );
 
     let login_attempt_id = code.0.as_ref().to_owned();
     let two_fa_code = code.1.as_ref().to_owned();
@@ -54,8 +68,8 @@ async fn should_return_200_if_correct_code() {
 
     let verify_2fa_body = serde_json::json!({
         "email": random_email.as_str(),
-        "loginAttemptId": login_attempt_id.as_str(),
-        "2FACode": two_fa_code.as_str()
+        "loginAttemptId": login_attempt_id.expose_secret(),
+        "2FACode": two_fa_code.expose_secret()
     });
 
     let response = app.post_verify_2fa(&verify_2fa_body).await;
@@ -127,8 +141,11 @@ async fn should_return_400_if_invalid_input() {
     let app = TestApp::new().await;
 
     let random_email = get_random_email();
-    let login_attempt_id = LoginAttemptId::default().as_ref().to_owned();
-    let two_fa_code = TwoFACode::default().as_ref().to_owned();
+    let login_attempt_id = LoginAttemptId::default()
+        .as_ref()
+        .expose_secret()
+        .to_owned();
+    let two_fa_code = TwoFACode::default().as_ref().expose_secret().to_owned();
 
     let test_cases = [
         serde_json::json!({
@@ -212,20 +229,26 @@ async fn should_return_401_if_incorrect_credentials() {
 
     let two_fa_code_store = app.two_fa_code_store.read().await;
     let code = two_fa_code_store
-        .get_code(&Email::parse(random_email.to_owned()).unwrap())
+        .get_code(&create_email(&random_email))
         .await
         .expect("Could not get 2FA code from store");
 
-    assert_eq!(response_body.login_attempt_id, code.0.as_ref().to_owned());
+    assert_eq!(
+        response_body.login_attempt_id,
+        code.0.as_ref().expose_secret().to_owned()
+    );
 
-    let login_attempt_id = code.0.as_ref().to_owned();
-    let two_fa_code = code.1.as_ref().to_owned();
+    let login_attempt_id = code.0.as_ref().expose_secret().to_owned();
+    let two_fa_code = code.1.as_ref().expose_secret().to_owned();
 
     drop(two_fa_code_store);
 
     let incorrect_email = get_random_email();
-    let incorrect_login_attempt_id = LoginAttemptId::default().as_ref().to_owned();
-    let incorrect_two_fa_code = TwoFACode::default().as_ref().to_owned();
+    let incorrect_login_attempt_id = LoginAttemptId::default()
+        .as_ref()
+        .expose_secret()
+        .to_owned();
+    let incorrect_two_fa_code = TwoFACode::default().as_ref().expose_secret().to_owned();
 
     let verify_2fa_bodies = [
         serde_json::json!({
@@ -304,13 +327,16 @@ async fn should_return_401_if_old_code() {
 
     let two_fa_code_store = app.two_fa_code_store.read().await;
     let code = two_fa_code_store
-        .get_code(&Email::parse(random_email.to_owned()).unwrap())
+        .get_code(&create_email(&random_email))
         .await
         .expect("Could not get 2FA code from store");
 
-    assert_eq!(response_body.login_attempt_id, code.0.as_ref().to_owned());
+    assert_eq!(
+        response_body.login_attempt_id,
+        code.0.as_ref().expose_secret().to_owned()
+    );
 
-    let old_two_fa_code = code.1.as_ref().to_owned();
+    let old_two_fa_code = code.1.as_ref().expose_secret().to_owned();
     drop(two_fa_code_store);
 
     let login_body = serde_json::json!({
@@ -324,11 +350,11 @@ async fn should_return_401_if_old_code() {
 
     let two_fa_code_store = app.two_fa_code_store.read().await;
     let code = two_fa_code_store
-        .get_code(&Email::parse(random_email.to_owned()).unwrap())
+        .get_code(&create_email(&random_email))
         .await
         .expect("Could not get 2FA code from store");
 
-    let login_attempt_id = code.0.as_ref().to_owned();
+    let login_attempt_id = code.0.as_ref().expose_secret().to_owned();
     drop(two_fa_code_store);
 
     let verify_2fa_body = serde_json::json!({
@@ -394,14 +420,17 @@ async fn should_return_401_if_same_code_twice() {
 
     let two_fa_code_store = app.two_fa_code_store.read().await;
     let code = two_fa_code_store
-        .get_code(&Email::parse(random_email.to_owned()).unwrap())
+        .get_code(&create_email(&random_email))
         .await
         .expect("Could not get 2FA code from store");
 
-    assert_eq!(response_body.login_attempt_id, code.0.as_ref().to_owned());
+    assert_eq!(
+        response_body.login_attempt_id,
+        code.0.as_ref().expose_secret().to_owned()
+    );
 
-    let login_attempt_id = code.0.as_ref().to_owned();
-    let two_fa_code = code.1.as_ref().to_owned();
+    let login_attempt_id = code.0.as_ref().expose_secret().to_owned();
+    let two_fa_code = code.1.as_ref().expose_secret().to_owned();
 
     drop(two_fa_code_store);
 

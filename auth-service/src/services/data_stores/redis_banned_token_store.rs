@@ -1,7 +1,8 @@
 use std::sync::Arc;
 
-use color_eyre::eyre::{eyre, Context};
+use color_eyre::eyre::{Context};
 use redis::{Connection, TypedCommands};
+use secrecy::{ExposeSecret, SecretString};
 use tokio::sync::RwLock;
 
 use crate::{
@@ -22,8 +23,8 @@ impl RedisBannedTokenStore {
 #[async_trait::async_trait]
 impl BannedTokenStore for RedisBannedTokenStore {
     #[tracing::instrument(name = "RedisBannedTokenStore:add_token", skip_all)] // New!
-    async fn add_token(&mut self, token: &str) -> Result<(), BannedTokenStoreError> {
-        let token_key = get_key(token);
+    async fn add_token(&mut self, token: &SecretString) -> Result<(), BannedTokenStoreError> {
+        let token_key = get_key(token.expose_secret());
         let value = true;
 
         let ttl: u64 = TOKEN_TTL_SECONDS
@@ -43,9 +44,9 @@ impl BannedTokenStore for RedisBannedTokenStore {
     }
 
     #[tracing::instrument(name = "RedisBannedTokenStore:contains_token", skip_all)] // New!
-    async fn contains_token(&self, token: &str) -> Result<bool, BannedTokenStoreError> {
+    async fn contains_token(&self, token: &SecretString) -> Result<bool, BannedTokenStoreError> {
         // Check if the token exists by calling the exists method on the Redis connection
-        let token_key = get_key(token);
+        let token_key = get_key(token.expose_secret());
         self.connection
             .write()
             .await

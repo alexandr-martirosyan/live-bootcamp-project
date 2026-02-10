@@ -1,5 +1,6 @@
 use auth_service::{utils::constants::JWT_COOKIE_NAME, ErrorResponse};
 use reqwest::Url;
+use secrecy::SecretString;
 
 use crate::helpers::{get_random_email, TestApp};
 
@@ -35,7 +36,7 @@ async fn should_return_200_if_valid_jwt_cookie() {
 
     assert!(!auth_cookie.value().is_empty());
 
-    let token = auth_cookie.value();
+    let token = SecretString::new(auth_cookie.value().to_owned().into_boxed_str());
 
     let response = app.post_logout().await;
 
@@ -52,7 +53,7 @@ async fn should_return_200_if_valid_jwt_cookie() {
     let is_banned = banned_tokens
         .read()
         .await
-        .contains_token(token)
+        .contains_token(&token)
         .await
         .expect("Failed to check if token is banned");
 

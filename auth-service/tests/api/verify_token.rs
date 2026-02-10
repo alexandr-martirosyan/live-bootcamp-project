@@ -1,4 +1,5 @@
 use auth_service::{utils::constants::JWT_COOKIE_NAME, ErrorResponse};
+use secrecy::{ExposeSecret, SecretString};
 
 use crate::helpers::{get_random_email, TestApp};
 
@@ -94,7 +95,7 @@ async fn should_return_401_if_banned_token() {
 
     assert!(!auth_cookie.value().is_empty());
 
-    let token = auth_cookie.value();
+    let token = SecretString::new(auth_cookie.value().to_owned().into_boxed_str());
 
     let response = app.post_logout().await;
 
@@ -111,14 +112,14 @@ async fn should_return_401_if_banned_token() {
     let is_banned = banned_tokens
         .read()
         .await
-        .contains_token(token)
+        .contains_token(&token)
         .await
         .expect("Failed to check if token is banned");
 
     assert!(is_banned);
 
     let verify_token_body = serde_json::json!({
-        "token": token.to_owned(),
+        "token": token.expose_secret().to_owned(),
     });
     let response = app.post_verify_token(&verify_token_body).await;
 

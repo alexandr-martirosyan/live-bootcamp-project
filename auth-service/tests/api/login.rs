@@ -5,6 +5,7 @@ use auth_service::{
     utils::constants::JWT_COOKIE_NAME,
     ErrorResponse,
 };
+use secrecy::{ExposeSecret, SecretString};
 
 #[tokio::test]
 async fn should_return_200_if_valid_credentials_and_2fa_disabled() {
@@ -222,11 +223,16 @@ async fn should_return_206_if_valid_credentials_and_2fa_enabled() {
     let code = two_fa_code_store
         .read()
         .await
-        .get_code(&Email::parse(random_email.to_owned()).unwrap())
+        .get_code(
+            &Email::parse(SecretString::new(random_email.to_owned().into_boxed_str())).unwrap(),
+        )
         .await
         .expect("Could not get 2FA code from store");
 
-    assert_eq!(response_body.login_attempt_id, code.0.as_ref().to_owned());
+    assert_eq!(
+        response_body.login_attempt_id,
+        code.0.as_ref().expose_secret().to_string()
+    );
 
     let mut app = app;
     app.clean_up().await;
