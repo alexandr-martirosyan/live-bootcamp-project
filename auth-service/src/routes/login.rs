@@ -61,8 +61,6 @@ async fn handle_2fa(
 
     if let Err(e) = state
         .email_client
-        .read()
-        .await
         .send_email(
             email,
             "Your 2FA Code",

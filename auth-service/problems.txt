@@ -5,3 +5,7 @@ veirfy_token in final solution of sprint 3 returns StatusCode instead of impl In
 
 __________________________ Sprint 5 __________________________
 why we have double arc in main.rs redis store?
+
+__________________________ Sprint 6 __________________________
+why email is SecretString
+
