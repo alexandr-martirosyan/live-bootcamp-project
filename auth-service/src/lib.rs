@@ -44,8 +44,7 @@ impl Application {
     pub async fn build(app_state: AppState, address: &str) -> Result<Self, Box<dyn Error>> {
         let allowed_origins = [
             "http://localhost:8000".parse()?,
-            // TODO: Replace [YOUR_DROPLET_IP] with your Droplet IP address
-            // "http://[YOUR_DROPLET_IP]:8000".parse()?,
+            "http://165.227.197.168:8000".parse()?,
         ];
 
         let cors = CorsLayer::new()
